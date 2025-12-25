@@ -11,7 +11,6 @@ import {
   type SetStateAction,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -34,9 +33,7 @@ import {
   modelsByProvider,
 } from "@/lib/ai/models";
 import type { Attachment, ChatMessage } from "@/lib/types";
-import type { AppUsage } from "@/lib/usage";
 import { cn } from "@/lib/utils";
-import { Context } from "./elements/context";
 import {
   PromptInput,
   PromptInputSubmit,
@@ -71,7 +68,6 @@ function PureMultimodalInput({
   selectedVisibilityType,
   selectedModelId,
   onModelChange,
-  usage,
 }: {
   chatId: string;
   input: string;
@@ -87,7 +83,6 @@ function PureMultimodalInput({
   selectedVisibilityType: VisibilityType;
   selectedModelId: string;
   onModelChange?: (modelId: string) => void;
-  usage?: AppUsage;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
@@ -103,6 +98,17 @@ function PureMultimodalInput({
       adjustHeight();
     }
   }, [adjustHeight]);
+
+  const hasAutoFocused = useRef(false);
+  useEffect(() => {
+    if (!hasAutoFocused.current && width) {
+      const timer = setTimeout(() => {
+        textareaRef.current?.focus();
+        hasAutoFocused.current = true;
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [width]);
 
   const resetHeight = useCallback(() => {
     if (textareaRef.current) {
@@ -203,13 +209,6 @@ function PureMultimodalInput({
       toast.error("Failed to upload file, please try again!");
     }
   }, []);
-
-  const contextProps = useMemo(
-    () => ({
-      usage,
-    }),
-    [usage]
-  );
 
   const handleFileChange = useCallback(
     async (event: ChangeEvent<HTMLInputElement>) => {
@@ -363,8 +362,7 @@ function PureMultimodalInput({
         )}
         <div className="flex flex-row items-start gap-1 sm:gap-2">
           <PromptInputTextarea
-            autoFocus
-            className="grow resize-none border-0! border-none! bg-transparent p-2 text-sm outline-none ring-0 [-ms-overflow-style:none] [scrollbar-width:none] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 [&::-webkit-scrollbar]:hidden"
+            className="grow resize-none border-0! border-none! bg-transparent p-2 text-base outline-none ring-0 [-ms-overflow-style:none] [scrollbar-width:none] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 [&::-webkit-scrollbar]:hidden"
             data-testid="multimodal-input"
             disableAutoResize={true}
             maxHeight={200}
@@ -374,8 +372,7 @@ function PureMultimodalInput({
             ref={textareaRef}
             rows={1}
             value={input}
-          />{" "}
-          <Context {...contextProps} />
+          />
         </div>
         <PromptInputToolbar className="border-top-0! border-t-0! p-0 shadow-none dark:border-0 dark:border-transparent!">
           <PromptInputTools className="gap-0 sm:gap-0.5">

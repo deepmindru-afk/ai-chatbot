@@ -17,7 +17,6 @@ import postgres from "postgres";
 import type { ArtifactKind } from "@/components/artifact";
 import type { VisibilityType } from "@/components/visibility-selector";
 import { ChatSDKError } from "../errors";
-import type { AppUsage } from "../usage";
 import { generateUUID } from "../utils";
 import {
   type Chat,
@@ -248,6 +247,20 @@ export async function saveMessages({ messages }: { messages: DBMessage[] }) {
     return await db.insert(message).values(messages);
   } catch (_error) {
     throw new ChatSDKError("bad_request:database", "Failed to save messages");
+  }
+}
+
+export async function updateMessage({
+  id,
+  parts,
+}: {
+  id: string;
+  parts: DBMessage["parts"];
+}) {
+  try {
+    return await db.update(message).set({ parts }).where(eq(message.id, id));
+  } catch (_error) {
+    throw new ChatSDKError("bad_request:database", "Failed to update message");
   }
 }
 
@@ -502,21 +515,17 @@ export async function updateChatVisibilityById({
   }
 }
 
-export async function updateChatLastContextById({
+export async function updateChatTitleById({
   chatId,
-  context,
+  title,
 }: {
   chatId: string;
-  // Store merged server-enriched usage object
-  context: AppUsage;
+  title: string;
 }) {
   try {
-    return await db
-      .update(chat)
-      .set({ lastContext: context })
-      .where(eq(chat.id, chatId));
+    return await db.update(chat).set({ title }).where(eq(chat.id, chatId));
   } catch (error) {
-    console.warn("Failed to update lastContext for chat", chatId, error);
+    console.warn("Failed to update title for chat", chatId, error);
     return;
   }
 }

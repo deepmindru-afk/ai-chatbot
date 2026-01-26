@@ -1,7 +1,6 @@
 "use client";
 import type { UseChatHelpers } from "@ai-sdk/react";
-import equal from "fast-deep-equal";
-import { memo, useState } from "react";
+import { useState } from "react";
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
 import { cn, sanitizeText } from "@/lib/utils";
@@ -109,14 +108,18 @@ const PurePreviewMessage = ({
             const { type } = part;
             const key = `message-${message.id}-part-${index}`;
 
-            if (type === "reasoning" && part.text?.trim().length > 0) {
-              return (
-                <MessageReasoning
-                  isLoading={isLoading}
-                  key={key}
-                  reasoning={part.text}
-                />
-              );
+            if (type === "reasoning") {
+              const hasContent = part.text?.trim().length > 0;
+              const isStreaming = "state" in part && part.state === "streaming";
+              if (hasContent || isStreaming) {
+                return (
+                  <MessageReasoning
+                    isLoading={isLoading || isStreaming}
+                    key={key}
+                    reasoning={part.text || ""}
+                  />
+                );
+              }
             }
 
             if (type === "text") {
@@ -358,21 +361,7 @@ const PurePreviewMessage = ({
   );
 };
 
-export const PreviewMessage = memo(
-  PurePreviewMessage,
-  (prevProps, nextProps) => {
-    if (
-      prevProps.isLoading === nextProps.isLoading &&
-      prevProps.message.id === nextProps.message.id &&
-      prevProps.requiresScrollPadding === nextProps.requiresScrollPadding &&
-      equal(prevProps.message.parts, nextProps.message.parts) &&
-      equal(prevProps.vote, nextProps.vote)
-    ) {
-      return true;
-    }
-    return false;
-  }
-);
+export const PreviewMessage = PurePreviewMessage;
 
 export const ThinkingMessage = () => {
   return (
